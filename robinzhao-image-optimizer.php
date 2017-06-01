@@ -1,9 +1,9 @@
 <?php
 
 /*
-Plugin Name: robinzhao-image-optimizer
+Plugin Name: Robinzhao / Image Optimizer
 Plugin URI:
-Description:
+Description: Auto optimize uploaded images with Imagemagick.
 Version: 1.0.0
 Author: Robin Zhao <boborabit@qq.com>
 Author URI:
@@ -30,26 +30,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-// Load classes.
-if (!class_exists('Robinzhao_IO')) {
-    require __DIR__ . '/Robinzhao_Log.php';
-    require __DIR__ . '/Robinzhao_Log_File.php';
-    require __DIR__ . '/Robinzhao_Log_Wpcli.php';
-    require __DIR__ . '/Robinzhao_DB.php';
-    require __DIR__ . '/Robinzhao_Optimiser.php';
-}
-
-if (class_exists('WP_CLI')) {
-    if (!class_exists('Robinzhao_Command')) {
-        require __DIR__ . '/Robinzhao_Command.php';
-    }
-}
-
-// Create the table on activation.
-register_activation_hook(__FILE__, function () {
-    Robinzhao_DB::getInstance()->install();
-});
-
 // Add sub menu page under Media Uploader.
 add_action('admin_menu', function () {
     add_submenu_page(
@@ -66,25 +46,25 @@ function robinzhao_io_page()
 {
     exec('which mogrify', $output, $return_var);
     if ($return_var === 1) {
-        require __DIR__ . '/templates/missing-imagemagick.phtml';
-        return;
-    }
-    exec('which wp', $output, $return_var);
-    if ($return_var === 1) {
-        require __DIR__ . '/templates/missing-wpcli.phtml';
+        require __DIR__ . '/missing-imagemagick.phtml';
         return;
     }
 
-    Robinzhao_DB::getInstance()->fillId();
-
-    $toProcess = Robinzhao_DB::getInstance()->numberUnprocessed();
-    if (!$toProcess) {
-        require __DIR__ . '/templates/all-set.phtml';
-        return;
-    }
-
-    $number = Robinzhao_DB::getInstance()->number();
-
-    require __DIR__ . '/templates/to-process.phtml';
-
+    require __DIR__ . '/all-set.phtml';
 }
+
+add_filter( 'wp_handle_upload', function (array $upload, string $context) {
+
+    $file = $upload['file'];
+
+    if (file_exists($file)) {
+        $cmd = "mogrify -strip -interlace Plane -quality 85%% -resize '768x432>' -sampling-factor 4:2:0 %s";
+        exec(sprintf($cmd, $file), $out, $rtn);
+        if ($rtn === 1) {
+            // @todo
+        }
+    }
+
+    return $upload;
+
+}, 10, 2 );
