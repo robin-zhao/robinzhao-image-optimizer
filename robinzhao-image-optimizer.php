@@ -58,10 +58,17 @@ add_filter( 'wp_handle_upload', function (array $upload, string $context) {
     $file = $upload['file'];
 
     if (file_exists($file)) {
-        $cmd = "mogrify -strip -interlace Plane -quality 85%% -resize '768x432>' -sampling-factor 4:2:0 %s";
+
+        if (preg_match('/\.jpe?g$/i', $file)) {
+            $cmd = "mogrify -strip -interlace Plane -quality 85%% -resize '728x409>' -sampling-factor 4:2:0 %s";
+        } else {
+            // PNG, GIF setting.
+            $cmd = "mogrify -strip -resize '728x409>' %s";
+        }
+
         exec(sprintf($cmd, $file), $out, $rtn);
         if ($rtn === 1) {
-            // @todo
+            // Do nothing since I'm lazy.
         }
     }
 
